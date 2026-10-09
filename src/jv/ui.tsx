@@ -11,6 +11,15 @@ export const paperAxis = (fg: string, muted: string) => ({
   zeroline: false, tickfont: { family: 'JetBrains Mono', size: 11, color: muted },
 })
 export const minorTicks = (fg: string) => ({ ticks: 'inside', ticklen: 3, tickwidth: 1, tickcolor: fg, showgrid: false })
+/**
+ * Grid lines for one axis, split by level: major lines stay readable,
+ * minor lines sit well behind them. Spread the fragments over the axis
+ * and its `minor` sub-object respectively.
+ */
+export const gridStyle = (on: boolean) => ({
+  major: { showgrid: on, gridcolor: cv('--c-plot-grid'), gridwidth: 1 },
+  minor: { showgrid: on, gridcolor: cv('--c-plot-grid-minor'), gridwidth: 0.75 },
+})
 export const cv = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
 
 /** Brand series colours, in display order. */
