@@ -3,20 +3,21 @@ import Plotly from 'plotly.js-basic-dist-min'
 import { Button } from '@/components/ui/button'
 import { devicePairs, loadFile, splitScans, type Scan, type Table } from './core'
 import { ExpandButton } from './Expand'
-import { card, cv, DropZone, Field, FileChips, minorTicks, paperAxis, pixelColor, Section, sectionLabel, Shell, Toggle, tr } from './ui'
+import { card, cv, DropZone, Field, FileChips, gridStyle, minorTicks, paperAxis, pixelColor, Section, sectionLabel, Shell, Toggle, tr } from './ui'
 
 type Loaded = { name: string; table?: Table; error?: string }
 
-function LineChart({ title, yLabel, scans, yOf, dark, positive = false }: { title: string; yLabel: string; scans: { name: string; s: Scan; color: string }[]; yOf: (i: number, s: Scan) => number; dark: boolean; positive?: boolean }) {
+function LineChart({ title, yLabel, scans, yOf, dark, grid, positive = false }: { title: string; yLabel: string; scans: { name: string; s: Scan; color: string }[]; yOf: (i: number, s: Scan) => number; dark: boolean; grid: boolean; positive?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const ink = cv('--c-plot-ink'), paper = cv('--c-plot-paper')
     const font = { family: 'Arial, sans-serif', size: 14, color: ink }
+    const g = gridStyle(grid)
     const axis = (t: string) => ({
-      ...paperAxis(ink, ink), mirror: 'allticks', ticks: 'inside', ticklen: 8, tickwidth: 1.5, linewidth: 1.5, showgrid: false,
-      minor: { ...minorTicks(ink), nticks: 5 }, zeroline: true, zerolinecolor: cv('--c-dim'), zerolinewidth: 1,
+      ...paperAxis(ink, ink), mirror: 'allticks', ticks: 'inside', ticklen: 8, tickwidth: 1.5, linewidth: 1.5, ...g.major,
+      minor: { ...minorTicks(ink), ...g.minor, nticks: 5 }, zeroline: true, zerolinecolor: cv('--c-dim'), zerolinewidth: 1,
       tickfont: font, title: { text: t, font: { ...font, size: 16 }, standoff: 10 },
     })
     Plotly.react(
@@ -33,7 +34,7 @@ function LineChart({ title, yLabel, scans, yOf, dark, positive = false }: { titl
       },
       { displaylogo: false, displayModeBar: false, responsive: true, scrollZoom: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'], toImageButtonOptions: { filename: title.replace(/\W+/g, '_'), scale: 3 } },
     )
-  }, [scans, yOf, yLabel, title, dark, positive])
+  }, [scans, yOf, yLabel, title, dark, grid, positive])
   useEffect(() => () => { if (ref.current) Plotly.purge(ref.current) }, [])
   return (
     <div className={`${card} p-5`}>
@@ -54,6 +55,7 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
   const [area, setArea] = useState('0.1')
   const [invert, setInvert] = useState(false)
   const [allPixels, setAllPixels] = useState(true)
+  const [grid, setGrid] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -112,6 +114,7 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
       <div className="mt-3">
         <Toggle on={allPixels} onChange={setAllPixels} label="All pixels" />
         <Toggle on={invert} onChange={setInvert} label="Invert current sign" />
+        <Toggle on={grid} onChange={setGrid} label="Grid lines" sub="Major lines solid, minor lines faint" />
       </div>
     </>
   )
@@ -154,9 +157,9 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
               <div className={`${card} p-5 text-sm text-bad`}>{err}</div>
             ) : (
               <>
-                <LineChart title={`Current vs Voltage — ${label}`} yLabel="Current (mA)" scans={scans} yOf={toMa} dark={dark} />
+                <LineChart title={`Current vs Voltage — ${label}`} yLabel="Current (mA)" scans={scans} yOf={toMa} dark={dark} grid={grid} />
                 {a > 0 ? (
-                  <LineChart title={`Current density vs Voltage — ${label}`} yLabel="Current Density (mA/cm²)" scans={scans} yOf={toJ} dark={dark} positive />
+                  <LineChart title={`Current density vs Voltage — ${label}`} yLabel="Current Density (mA/cm²)" scans={scans} yOf={toJ} dark={dark} grid={grid} positive />
                 ) : (
                   <div className={`${card} p-5 text-sm text-muted`}>Enter an active area to show the J–V plot.</div>
                 )}
