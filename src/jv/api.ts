@@ -8,7 +8,6 @@
 //
 // Set VITE_API_URL (e.g. http://localhost:8000) or proxy /api to the backend.
 
-export const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '/api'
 
 export type MetricKey = 'pce' | 'voc' | 'isc' | 'jsc' | 'ff' | 'imp' | 'pmax' | 'vmpp' | 'jmpp' | 'rs' | 'rsh' | 'ff0' | 'dff'
 export type Metrics = Partial<Record<MetricKey, number | null>>
@@ -40,75 +39,9 @@ export type AnalysisResponse = {
   exports?: { xlsx?: string; csv?: string }
 }
 
-// ── Streamlit transport ──────────────────────────────────────────────────────
-// When this app is the frontend of a Streamlit custom component (see streamlit_app.py)
-// requests go through the component protocol (postMessage) instead of HTTP.
+import { analyzeFiles } from './core'
 
-type Pending = { resolve: (r: AnalysisResponse) => void; reject: (e: Error) => void }
-const pending = new Map<string, Pending>()
-let streamlitLive = false
-let started = false
-
-const toStreamlit = (type: string, extra: object) => window.parent.postMessage({ isStreamlitMessage: true, type, ...extra }, '*')
-
-function startStreamlit() {
-  if (started || window.parent === window) return
-  started = true
-  window.addEventListener('message', (e) => {
-    if (e.data?.type !== 'streamlit:render') return
-    streamlitLive = true
-    const r = e.data.args?.response
-    const p = r && pending.get(r.id)
-    if (!p) return
-    pending.delete(r.id)
-    if (r.error) p.reject(new Error(r.error))
-    else p.resolve(r.result as AnalysisResponse)
-  })
-  toStreamlit('streamlit:componentReady', { apiVersion: 1 })
-  let h = 900
-  try {
-    h = Math.max(700, (window.parent as Window).innerHeight - 24)
-  } catch {}
-  toStreamlit('streamlit:setFrameHeight', { height: h })
-}
-startStreamlit()
-
-const b64 = (f: File) =>
-  new Promise<string>((ok, no) => {
-    const r = new FileReader()
-    r.onload = () => ok(String(r.result).split(',')[1] ?? '')
-    r.onerror = () => no(new Error(`Could not read ${f.name}`))
-    r.readAsDataURL(f)
-  })
-
-async function viaStreamlit(files: File[], params: AnalysisParams): Promise<AnalysisResponse> {
-  const id = Math.random().toString(36).slice(2)
-  const payload = { id, params, files: await Promise.all(files.map(async (f) => ({ name: f.name, data: await b64(f) }))) }
-  return new Promise((resolve, reject) => {
-    pending.set(id, { resolve, reject })
-    toStreamlit('streamlit:setComponentValue', { value: payload, dataType: 'json' })
-  })
-}
-
+// Analysis runs fully in the browser (port of the Python backend).
 export async function runAnalysis(files: File[], params: AnalysisParams): Promise<AnalysisResponse> {
-  if (streamlitLive) return viaStreamlit(files, params)
-  const body = new FormData()
-  files.forEach((f) => body.append('files', f, f.name))
-  body.append('params', JSON.stringify(params))
-  let res: Response
-  try {
-    res = await fetch(`${API_URL}/analyze`, { method: 'POST', body })
-  } catch {
-    throw new Error(`Could not reach the analysis backend at ${API_URL}/analyze`)
-  }
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    let detail = text
-    try {
-      const j = JSON.parse(text)
-      detail = j.detail ?? j.error ?? j.message ?? text
-    } catch {}
-    throw new Error(`Backend error ${res.status}${detail ? `: ${typeof detail === 'string' ? detail : JSON.stringify(detail)}` : ''}`)
-  }
-  return res.json()
+  return analyzeFiles(files, params)
 }
