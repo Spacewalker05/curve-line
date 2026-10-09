@@ -110,7 +110,7 @@ export function ThemeButton({ dark, setDark }: { dark: boolean; setDark: (v: boo
   )
 }
 
-export const Brand = () => <span className="text-[15px] font-semibold tracking-tight">JV Analyzer</span>
+export const Brand = () => <span className="text-xl font-bold tracking-tight">JV Analyzer</span>
 
 export function DropZone({ accept, label, onFiles }: { accept: string; label: string; onFiles: (f: File[]) => void }) {
   const [drag, setDrag] = useState(false)
