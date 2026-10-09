@@ -1,12 +1,4 @@
-// Contract between this UI and the Python backend.
-//
-//   (Streamlit: handled by streamlit_app.py via the component protocol; HTTP below is for standalone use)
-//   POST {API_URL}/analyze        multipart/form-data
-//     files[]  : the uploaded data files (one part per file, repeated)
-//     params   : JSON string, see AnalysisParams
-//   -> 200 application/json, see AnalysisResponse
-//
-// Set VITE_API_URL (e.g. http://localhost:8000) or proxy /api to the backend.
+// Shared types for the JV analysis UI. Analysis runs in the browser (see core.ts).
 
 
 export type MetricKey = 'pce' | 'voc' | 'isc' | 'jsc' | 'ff' | 'imp' | 'pmax' | 'vmpp' | 'jmpp' | 'rs' | 'rsh' | 'ff0' | 'dff'
