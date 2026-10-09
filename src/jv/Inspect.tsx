@@ -7,7 +7,7 @@ import { card, cv, DropZone, Field, FileChips, minorTicks, paperAxis, pixelColor
 
 type Loaded = { name: string; table?: Table; error?: string }
 
-function LineChart({ title, yLabel, scans, yOf, dark, positive = false }: { title: string; yLabel: string; scans: { name: string; s: Scan; color: string; dash: string }[]; yOf: (i: number, s: Scan) => number; dark: boolean; positive?: boolean }) {
+function LineChart({ title, yLabel, scans, yOf, dark, positive = false }: { title: string; yLabel: string; scans: { name: string; s: Scan; color: string }[]; yOf: (i: number, s: Scan) => number; dark: boolean; positive?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -22,7 +22,7 @@ function LineChart({ title, yLabel, scans, yOf, dark, positive = false }: { titl
     Plotly.react(
       el,
       scans.map(({ name, s, color }) => ({
-        type: 'scatter', mode: 'lines', name, x: s.V, y: s.I.map((i) => yOf(i, s)), line: { color, width: 2, dash: scans.find((scan) => scan.name === name)?.dash },
+        type: 'scatter', mode: 'lines', name, x: s.V, y: s.I.map((i) => yOf(i, s)), line: { color, width: 2 },
         hovertemplate: `${name}<br>V = %{x:.4f} V<br>${yLabel.split(' (')[0]} = %{y:.4f}<extra></extra>`,
       })),
       {
@@ -71,20 +71,21 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
   const pair = pairs[Math.min(pi, pairs.length - 1)]
   const err = cur?.error ?? (cur?.table && !pairs.length ? 'No voltage / current columns found in this file.' : '')
 
+  const colors = useMemo(() => pairs.map((_, i) => pixelColor(i, pairs.length)), [pairs, dark])
+
   const scans = useMemo(() => {
     if (!cur?.table || !pair) return []
-    const out: { name: string; s: Scan; color: string; dash: string }[] = []
-    const palette = ['--c-plot-ink', '--c-plot-pixel-green', '--c-plot-forward', '--c-plot-pixel-blue', '--c-plot-pixel-gold', '--c-plot-pixel-magenta']
+    const out: { name: string; s: Scan; color: string }[] = []
     for (const p of allPixels ? pairs : [pair]) {
       const s = splitScans(cur.table, p.v, p.i, invert, 10)
-      const color = cv(palette[pairs.indexOf(p) % palette.length] ?? '--c-plot-ink')
+      const color = colors[pairs.indexOf(p)] ?? cv('--c-plot-ink')
       const prefix = p.label ? `${p.label} · ` : ''
-      if (s.forward) out.push({ name: `${prefix}Forward`, s: s.forward, color, dash: 'solid' })
-      if (s.reverse) out.push({ name: `${prefix}Reverse`, s: s.reverse, color, dash: 'dash' })
-      if (s.single) out.push({ name: `${prefix}Scan`, s: s.single, color, dash: 'solid' })
+      if (s.forward) out.push({ name: `${prefix}Forward`, s: s.forward, color })
+      if (s.reverse) out.push({ name: `${prefix}Reverse`, s: s.reverse, color })
+      if (s.single) out.push({ name: `${prefix}Scan`, s: s.single, color })
     }
     return out
-  }, [cur, pair, pairs, allPixels, invert, dark])
+  }, [cur, pair, pairs, allPixels, invert, dark, colors])
 
   const a = parseFloat(area)
   const toMa = useMemo(() => (i: number) => i * 1000, [])
@@ -97,7 +98,7 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
   }, [a])
   const label = cur ? `${cur.name.replace(/\.[^.]+$/, '')}${allPixels && pairs.length > 1 ? ' · All pixels' : pair?.label ? ` · ${pair.label}` : ''}` : ''
 
-  const pill = (on: boolean) => `h-8 px-3 rounded-lg border text-xs font-medium cursor-pointer ${tr} ${on ? 'bg-accent border-accent text-on-accent' : 'border-line text-fg hover:border-accent'}`
+  const pill = (on: boolean) => `inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium cursor-pointer ${tr} ${on ? 'bg-accent border-accent text-on-accent' : 'border-line text-fg hover:border-accent'}`
 
   const sidebar = (
     <>
