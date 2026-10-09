@@ -3,7 +3,7 @@ import Plotly from 'plotly.js-basic-dist-min'
 import { Button } from '@/components/ui/button'
 import { devicePairs, loadFile, splitScans, type Scan, type Table } from './core'
 import { ExpandButton } from './Expand'
-import { card, cv, DropZone, Field, FileChips, minorTicks, paperAxis, Section, sectionLabel, Shell, Toggle, tr } from './ui'
+import { card, cv, DropZone, Field, FileChips, minorTicks, paperAxis, pixelColor, Section, sectionLabel, Shell, Toggle, tr } from './ui'
 
 type Loaded = { name: string; table?: Table; error?: string }
 
@@ -29,8 +29,7 @@ function LineChart({ title, yLabel, scans, yOf, dark, positive = false }: { titl
         paper_bgcolor: paper, plot_bgcolor: paper, font, height: 420, margin: { l: 72, r: 24, t: 20, b: 60 },
         xaxis: { ...axis('Voltage (V)'), ...(positive ? { rangemode: 'nonnegative' } : {}) },
         yaxis: { ...axis(yLabel), ...(positive ? { range: [0, Math.max(1, ...scans.flatMap(({ s }) => s.I.map((i) => yOf(i, s)))) * 1.08] } : {}) },
-        hovermode: 'closest', dragmode: 'zoom',
-        legend: { x: 0.03, y: 0.03, xanchor: 'left', yanchor: 'bottom', bgcolor: paper, bordercolor: ink, borderwidth: 1, font: { ...font, size: 12 } },
+        hovermode: 'closest', dragmode: 'zoom', showlegend: false,
       },
       { displaylogo: false, displayModeBar: false, responsive: true, scrollZoom: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'], toImageButtonOptions: { filename: title.replace(/\W+/g, '_'), scale: 3 } },
     )
