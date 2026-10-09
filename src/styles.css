@@ -369,4 +369,8 @@ input[type='number'] {
   --c-plot-ink: #171717;
   --c-plot-forward: #f04444;
   --c-plot-reverse: #555555;
+  --c-plot-pixel-green: #00a84a;
+  --c-plot-pixel-blue: #2278c9;
+  --c-plot-pixel-gold: #b58b00;
+  --c-plot-pixel-magenta: #be3982;
 }
