@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Plotly from 'plotly.js-basic-dist-min'
+import { Button } from '@/components/ui/button'
 import { devicePairs, loadFile, splitScans, type Scan, type Table } from './core'
 import { ExpandButton } from './Expand'
 import { card, cv, DropZone, Field, FileChips, minorTicks, paperAxis, Section, sectionLabel, Shell, Toggle, tr } from './ui'
 
 type Loaded = { name: string; table?: Table; error?: string }
 
-function LineChart({ title, yLabel, scans, yOf, dark }: { title: string; yLabel: string; scans: { name: string; s: Scan; color: string }[]; yOf: (i: number) => number; dark: boolean }) {
+function LineChart({ title, yLabel, scans, yOf, dark, positive = false }: { title: string; yLabel: string; scans: { name: string; s: Scan; color: string; dash: string }[]; yOf: (i: number, s: Scan) => number; dark: boolean; positive?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const el = ref.current
@@ -21,17 +22,19 @@ function LineChart({ title, yLabel, scans, yOf, dark }: { title: string; yLabel:
     Plotly.react(
       el,
       scans.map(({ name, s, color }) => ({
-        type: 'scatter', mode: 'lines', name, x: s.V, y: s.I.map(yOf), line: { color, width: 2 },
+        type: 'scatter', mode: 'lines', name, x: s.V, y: s.I.map((i) => yOf(i, s)), line: { color, width: 2, dash: scans.find((scan) => scan.name === name)?.dash },
         hovertemplate: `${name}<br>V = %{x:.4f} V<br>${yLabel.split(' (')[0]} = %{y:.4f}<extra></extra>`,
       })),
       {
         paper_bgcolor: paper, plot_bgcolor: paper, font, height: 420, margin: { l: 72, r: 24, t: 20, b: 60 },
-        xaxis: axis('Voltage (V)'), yaxis: axis(yLabel), hovermode: 'closest', dragmode: 'zoom',
-        legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(0,0,0,0)', font },
+        xaxis: { ...axis('Voltage (V)'), ...(positive ? { rangemode: 'nonnegative' } : {}) },
+        yaxis: { ...axis(yLabel), ...(positive ? { range: [0, Math.max(1, ...scans.flatMap(({ s }) => s.I.map((i) => yOf(i, s)))) * 1.08] } : {}) },
+        hovermode: 'closest', dragmode: 'zoom',
+        legend: { x: 0.03, y: 0.03, xanchor: 'left', yanchor: 'bottom', bgcolor: paper, bordercolor: ink, borderwidth: 1, font: { ...font, size: 12 } },
       },
-      { displaylogo: false, responsive: true, scrollZoom: true, modeBarButtonsToRemove: ['lasso2d', 'select2d'], toImageButtonOptions: { filename: title.replace(/\W+/g, '_'), scale: 3 } },
+      { displaylogo: false, displayModeBar: false, responsive: true, scrollZoom: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'], toImageButtonOptions: { filename: title.replace(/\W+/g, '_'), scale: 3 } },
     )
-  }, [scans, yOf, yLabel, title, dark])
+  }, [scans, yOf, yLabel, title, dark, positive])
   useEffect(() => () => { if (ref.current) Plotly.purge(ref.current) }, [])
   return (
     <div className={`${card} p-5`}>
@@ -51,6 +54,7 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
   const [pi, setPi] = useState(0)
   const [area, setArea] = useState('0.1')
   const [invert, setInvert] = useState(false)
+  const [allPixels, setAllPixels] = useState(true)
 
   useEffect(() => {
     let live = true
@@ -70,18 +74,29 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
 
   const scans = useMemo(() => {
     if (!cur?.table || !pair) return []
-    const s = splitScans(cur.table, pair.v, pair.i, invert, 10)
-    const out: { name: string; s: Scan; color: string }[] = []
-    if (s.forward) out.push({ name: 'Forward', s: s.forward, color: cv('--c-plot-forward') })
-    if (s.reverse) out.push({ name: 'Reverse', s: s.reverse, color: cv('--c-plot-reverse') })
-    if (s.single) out.push({ name: 'Scan', s: s.single, color: cv('--c-plot-forward') })
+    const out: { name: string; s: Scan; color: string; dash: string }[] = []
+    const palette = ['--c-plot-ink', '--c-plot-pixel-green', '--c-plot-forward', '--c-plot-pixel-blue', '--c-plot-pixel-gold', '--c-plot-pixel-magenta']
+    for (const p of allPixels ? pairs : [pair]) {
+      const s = splitScans(cur.table, p.v, p.i, invert, 10)
+      const color = cv(palette[pairs.indexOf(p) % palette.length] ?? '--c-plot-ink')
+      const prefix = p.label ? `${p.label} · ` : ''
+      if (s.forward) out.push({ name: `${prefix}Forward`, s: s.forward, color, dash: 'solid' })
+      if (s.reverse) out.push({ name: `${prefix}Reverse`, s: s.reverse, color, dash: 'dash' })
+      if (s.single) out.push({ name: `${prefix}Scan`, s: s.single, color, dash: 'solid' })
+    }
     return out
-  }, [cur, pair, invert, dark])
+  }, [cur, pair, pairs, allPixels, invert, dark])
 
   const a = parseFloat(area)
   const toMa = useMemo(() => (i: number) => i * 1000, [])
-  const toJ = useMemo(() => (i: number) => (i / a) * 1000, [a])
-  const label = cur ? `${cur.name.replace(/\.[^.]+$/, '')}${pair?.label ? ` · ${pair.label}` : ''}` : ''
+  // Orient the whole scan using current nearest V=0, preserving its zero crossing.
+  // Pointwise modulus would incorrectly fold the post-Voc tail upward.
+  const toJ = useMemo(() => (i: number, s: Scan) => {
+    const nearZero = s.V.reduce((best, v, k) => Math.abs(v) < Math.abs(s.V[best] ?? Infinity) ? k : best, 0)
+    const polarity = (s.I[nearZero] ?? 0) < 0 ? -1 : 1
+    return polarity * (i / a) * 1000
+  }, [a])
+  const label = cur ? `${cur.name.replace(/\.[^.]+$/, '')}${allPixels && pairs.length > 1 ? ' · All pixels' : pair?.label ? ` · ${pair.label}` : ''}` : ''
 
   const pill = (on: boolean) => `h-8 px-3 rounded-lg border text-xs font-medium cursor-pointer ${tr} ${on ? 'bg-accent border-accent text-on-accent' : 'border-line text-fg hover:border-accent'}`
 
@@ -95,7 +110,8 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
       <Section title="Device" />
       <Field label="Active area" unit="cm²" value={area} onChange={setArea} />
       <div className="mt-3">
-        <Toggle on={invert} onChange={setInvert} label="Invert current sign" sub="Flip if Jsc appears negative" />
+        <Toggle on={allPixels} onChange={setAllPixels} label="All pixels" />
+        <Toggle on={invert} onChange={setInvert} label="Invert current sign" />
       </div>
     </>
   )
@@ -115,11 +131,11 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
-              {loaded.map((l, i) => <button key={l.name} onClick={() => { setFi(i); setPi(0) }} className={pill(i === fi)}>{l.name}</button>)}
+              {loaded.map((l, i) => <Button variant="ghost" key={l.name} onClick={() => { setFi(i); setPi(0) }} className={pill(i === fi)}>{l.name}</Button>)}
             </div>
-            {pairs.length > 1 && (
+            {pairs.length > 1 && !allPixels && (
               <div className="flex flex-wrap gap-2">
-                {pairs.map((p, i) => <button key={p.label} onClick={() => setPi(i)} className={pill(i === pi)}>{p.label}</button>)}
+                {pairs.map((p, i) => <Button variant="ghost" key={p.label} onClick={() => setPi(i)} className={pill(i === pi)}>{p.label}</Button>)}
               </div>
             )}
             {err ? (
@@ -128,7 +144,7 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
               <>
                 <LineChart title={`Current vs Voltage — ${label}`} yLabel="Current (mA)" scans={scans} yOf={toMa} dark={dark} />
                 {a > 0 ? (
-                  <LineChart title={`Jsc vs Voltage — ${label}`} yLabel="J (mA/cm²)" scans={scans} yOf={toJ} dark={dark} />
+                  <LineChart title={`Current density vs Voltage — ${label}`} yLabel="Current Density (mA/cm²)" scans={scans} yOf={toJ} dark={dark} positive />
                 ) : (
                   <div className={`${card} p-5 text-sm text-muted`}>Enter an active area to show the J–V plot.</div>
                 )}
