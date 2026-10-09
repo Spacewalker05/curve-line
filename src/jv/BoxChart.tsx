@@ -3,7 +3,6 @@ import Plotly from 'plotly.js-basic-dist-min'
 import type { MetricKey, Metrics } from './api'
 import { ExpandButton } from './Expand'
 import { card, cv, minorTicks, paperAxis, sectionLabel } from './ui'
-import './parameter-chart.css'
 
 type Dir = 'reverse' | 'forward'
 type Col = { label: string; scans: { name: Dir; m: Metrics }[] }

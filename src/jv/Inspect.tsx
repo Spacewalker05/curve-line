@@ -3,7 +3,6 @@ import Plotly from 'plotly.js-basic-dist-min'
 import { devicePairs, loadFile, splitScans, type Scan, type Table } from './core'
 import { ExpandButton } from './Expand'
 import { card, cv, DropZone, Field, FileChips, minorTicks, paperAxis, Section, sectionLabel, Shell, Toggle, tr } from './ui'
-import './parameter-chart.css'
 
 type Loaded = { name: string; table?: Table; error?: string }
 
