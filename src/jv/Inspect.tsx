@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Plotly from 'plotly.js-basic-dist-min'
 import { Button } from '@/components/ui/button'
-import { devicePairs, loadFile, splitScans, type Scan, type Table } from './core'
+import type { Scan } from './core'
+import { inspectFiles, type InspectFile } from './api'
 import { ExpandButton } from './Expand'
 import { card, cv, DropZone, Field, FileChips, gridStyle, minorTicks, paperAxis, pixelColor, Section, sectionLabel, Shell, Toggle, tr } from './ui'
 
-type Loaded = { name: string; table?: Table; error?: string }
+const flip = (s: Scan | undefined, invert: boolean) => (s && invert ? { V: s.V, I: s.I.map((i) => -i) } : s)
 
 function LineChart({ title, yLabel, scans, yOf, dark, grid, positive = false }: { title: string; yLabel: string; scans: { name: string; s: Scan; color: string }[]; yOf: (i: number, s: Scan) => number; dark: boolean; grid: boolean; positive?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -49,7 +50,7 @@ function LineChart({ title, yLabel, scans, yOf, dark, grid, positive = false }: 
 
 export default function Inspect({ onBack, dark, setDark }: { onBack: () => void; dark: boolean; setDark: (v: boolean) => void }) {
   const [files, setFiles] = useState<File[]>([])
-  const [loaded, setLoaded] = useState<Loaded[]>([])
+  const [loaded, setLoaded] = useState<InspectFile[]>([])
   const [fi, setFi] = useState(0)
   const [pi, setPi] = useState(0)
   const [area, setArea] = useState('0.1')
@@ -59,35 +60,33 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
 
   useEffect(() => {
     let live = true
-    Promise.all(files.map(async (f) => {
-      try { return { name: f.name, table: await loadFile(f) } } catch (e: any) { return { name: f.name, error: e?.message ?? 'Could not read file' } }
-    })).then((r) => live && setLoaded(r))
+    if (!files.length) { setLoaded([]); return }
+    inspectFiles(files, 10)
+      .then((r) => live && setLoaded(r))
+      .catch((e) => live && setLoaded(files.map((f) => ({ name: f.name, pixels: [], error: e?.message ?? 'Could not read file' }))))
     return () => { live = false }
   }, [files])
 
   const cur = loaded[Math.min(fi, loaded.length - 1)]
-  const pairs = useMemo(() => {
-    if (!cur?.table) return []
-    try { return devicePairs(cur.table) } catch { return [] }
-  }, [cur])
+  const pairs = cur?.pixels ?? []
   const pair = pairs[Math.min(pi, pairs.length - 1)]
-  const err = cur?.error ?? (cur?.table && !pairs.length ? 'No voltage / current columns found in this file.' : '')
+  const err = cur?.error ?? (cur && !pairs.length ? 'No voltage / current columns found in this file.' : '')
 
   const colors = useMemo(() => pairs.map((_, i) => pixelColor(i, pairs.length)), [pairs, dark])
 
   const scans = useMemo(() => {
-    if (!cur?.table || !pair) return []
+    if (!pair) return []
     const out: { name: string; s: Scan; color: string }[] = []
     for (const p of allPixels ? pairs : [pair]) {
-      const s = splitScans(cur.table, p.v, p.i, invert, 10)
       const color = colors[pairs.indexOf(p)] ?? cv('--c-plot-ink')
       const prefix = p.label ? `${p.label} · ` : ''
-      if (s.forward) out.push({ name: `${prefix}Forward`, s: s.forward, color })
-      if (s.reverse) out.push({ name: `${prefix}Reverse`, s: s.reverse, color })
-      if (s.single) out.push({ name: `${prefix}Scan`, s: s.single, color })
+      const f = flip(p.forward, invert), r = flip(p.reverse, invert), s1 = flip(p.single, invert)
+      if (f) out.push({ name: `${prefix}Forward`, s: f, color })
+      if (r) out.push({ name: `${prefix}Reverse`, s: r, color })
+      if (s1) out.push({ name: `${prefix}Scan`, s: s1, color })
     }
     return out
-  }, [cur, pair, pairs, allPixels, invert, dark, colors])
+  }, [pair, pairs, allPixels, invert, dark, colors])
 
   const a = parseFloat(area)
   const toMa = useMemo(() => (i: number) => i * 1000, [])
