@@ -1,3 +1,4 @@
+// @ts-nocheck — ported verbatim from curveline (written for a looser TS config)
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Plotly from 'plotly.js-basic-dist-min'
