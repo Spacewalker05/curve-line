@@ -13,6 +13,17 @@ export const paperAxis = (fg: string, muted: string) => ({
 export const minorTicks = (fg: string) => ({ ticks: 'inside', ticklen: 3, tickwidth: 1, tickcolor: fg, showgrid: false })
 export const cv = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim()
 
+/** Brand series colours, in display order. */
+export const PIXEL_TOKENS = ['--c-plot-ink', '--c-plot-pixel-green', '--c-plot-forward', '--c-plot-pixel-blue', '--c-plot-pixel-gold', '--c-plot-pixel-magenta']
+
+/**
+ * Colour for the i-th pixel of an n-pixel device.
+ * Uses the brand tokens while they cover the set; beyond that it spreads hues
+ * so every pixel stays individually distinguishable (tokens alone would repeat).
+ */
+export const pixelColor = (i: number, n: number) =>
+  n <= PIXEL_TOKENS.length ? cv(PIXEL_TOKENS[i % PIXEL_TOKENS.length]) : `hsl(${Math.round((i * 360) / Math.max(n, 1))} 62% 42%)`
+
 export function Section({ title }: { title: string }) {
   return (
     <div className="mt-8 mb-3.5">
