@@ -371,6 +371,8 @@ input[type='number'] {
   --c-plot-parameter-forward-fill: #6a8caf26;
   --c-plot-parameter-reverse-fill: #d9775726;
   --c-plot-ink: #171717;
+  --c-plot-grid: #17171733;
+  --c-plot-grid-minor: #17171714;
   --c-plot-forward: #f04444;
   --c-plot-reverse: #555555;
   --c-plot-pixel-green: #00a84a;
