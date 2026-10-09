@@ -133,9 +133,21 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
             <div className="flex flex-wrap gap-2">
               {loaded.map((l, i) => <Button variant="ghost" key={l.name} onClick={() => { setFi(i); setPi(0) }} className={pill(i === fi)}>{l.name}</Button>)}
             </div>
-            {pairs.length > 1 && !allPixels && (
-              <div className="flex flex-wrap gap-2">
-                {pairs.map((p, i) => <Button variant="ghost" key={p.label} onClick={() => setPi(i)} className={pill(i === pi)}>{p.label}</Button>)}
+            {pairs.length > 1 && (
+              <div className={`${card} p-4`}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className={sectionLabel}>Pixels</div>
+                  <div className="text-[11px] text-dim">Hover a line to see its pixel and sweep</div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-[116px] overflow-y-auto scroll-quiet pr-1">
+                  <Button variant="ghost" onClick={() => setAllPixels(true)} className={pill(allPixels)}>All</Button>
+                  {pairs.map((p, i) => (
+                    <Button variant="ghost" key={p.label} onClick={() => { setAllPixels(false); setPi(i) }} className={pill(!allPixels && i === pi)}>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: colors[i] }} />
+                      {p.label || `Pixel ${i + 1}`}
+                    </Button>
+                  ))}
+                </div>
               </div>
             )}
             {err ? (
