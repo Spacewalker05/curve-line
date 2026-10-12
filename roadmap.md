@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Open
+- [ ] Label all plot y-axes and apply parameter_filename image names to every download path
 - [ ] User to check Inspect with their own scan files (appearance and numbers)
 - [ ] Plotting screen has not been exercised since the port
 
