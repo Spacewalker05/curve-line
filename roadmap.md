@@ -1,11 +1,11 @@
 # Roadmap
 
 ## Open
-- [ ] Label all plot y-axes and apply parameter_filename image names to every download path
 - [ ] User to check Inspect with their own scan files (appearance and numbers)
-- [ ] Plotting screen has not been exercised since the port
 
 ## Done
+- All plot y-axes identify their parameter; normal, enlarged and bulk image downloads share parameter_filename naming
+- Plotting checked with an Excel workbook: parameter labels and direct/enlarged PNG filenames verified
 - Inspect: grid-lines switch — major lines solid, minor lines fainter, off by default
 - Inspect: pixel selection moved into a toggle strip below the file list; no in-chart legend
 - Inspect: forward and reverse of one pixel share one colour, both solid
