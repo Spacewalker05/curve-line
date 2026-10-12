@@ -16,3 +16,4 @@
 - Keep paper-chart colours as global CSS tokens (--c-plot-*) and read them through cv(); printed charts stay the same across themes.
 - Inspect normalizes current-density polarity per scan from the sample nearest zero voltage, not pointwise absolute values, to preserve the physical zero crossing without folding the post-Voc tail.
 - Parameter Calculation and enlarged charts use the Cartesian Plotly bundle so original box plots render with individual measurements and means.
+- Centralize plot image naming in src/jv/plot-export.ts and carry it on chart elements into enlarged views so direct, toolbar and bulk downloads stay consistent.
