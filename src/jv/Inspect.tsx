@@ -58,6 +58,8 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
   const [invert, setInvert] = useState(false)
   const [allPixels, setAllPixels] = useState(true)
   const [grid, setGrid] = useState(false)
+  const [compare, setCompare] = useState(false)
+  const [ci, setCi] = useState(1)
 
   useEffect(() => {
     let live = true
@@ -71,23 +73,38 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
   const cur = loaded[Math.min(fi, loaded.length - 1)]
   const pairs = cur?.pixels ?? []
   const pair = pairs[Math.min(pi, pairs.length - 1)]
+  const canCompare = loaded.length >= 2
+  const cmpIdx = canCompare ? (ci === fi || ci >= loaded.length ? (fi === 0 ? 1 : 0) : ci) : -1
+  const other = compare && cmpIdx >= 0 ? loaded[cmpIdx] : undefined
   const err = cur?.error ?? (cur && !pairs.length ? 'No voltage / current columns found in this file.' : '')
 
   const colors = useMemo(() => pairs.map((_, i) => pixelColor(i, pairs.length)), [pairs, dark])
+  const fileColors = useMemo(() => [cv('--c-plot-ink'), cv('--c-plot-forward')], [dark])
+  const stem = (n: string) => n.replace(/\.[^.]+$/, '')
 
   const scans = useMemo(() => {
     if (!pair) return []
     const out: { name: string; s: Scan; color: string }[] = []
-    for (const p of allPixels ? pairs : [pair]) {
-      const color = colors[pairs.indexOf(p)] ?? cv('--c-plot-ink')
-      const prefix = p.label ? `${p.label} · ` : ''
+    const add = (p: typeof pair, color: string, filePrefix: string) => {
+      const prefix = `${filePrefix}${p.label ? `${p.label} · ` : ''}`
       const f = flip(p.forward, invert), r = flip(p.reverse, invert), s1 = flip(p.single, invert)
       if (f) out.push({ name: `${prefix}Forward`, s: f, color })
       if (r) out.push({ name: `${prefix}Reverse`, s: r, color })
       if (s1) out.push({ name: `${prefix}Scan`, s: s1, color })
     }
+    if (other) {
+      // Compare mode: colour by sample so the two files read apart at a glance.
+      const sets: [InspectFile, string][] = [[cur, fileColors[0]], [other, fileColors[1]]]
+      for (const [file, color] of sets) {
+        const px = file.pixels ?? []
+        const chosen = allPixels ? px : [px.find((p) => p.label === pair.label) ?? px[Math.min(pi, px.length - 1)]].filter(Boolean)
+        for (const p of chosen) add(p, color, `${stem(file.name)} · `)
+      }
+      return out
+    }
+    for (const p of allPixels ? pairs : [pair]) add(p, colors[pairs.indexOf(p)] ?? cv('--c-plot-ink'), '')
     return out
-  }, [pair, pairs, allPixels, invert, dark, colors])
+  }, [pair, pairs, allPixels, invert, dark, colors, other, cur, fileColors, pi])
 
   const a = parseFloat(area)
   const toMa = useMemo(() => (i: number) => i * 1000, [])
@@ -98,7 +115,9 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
     const polarity = (s.I[nearZero] ?? 0) < 0 ? -1 : 1
     return polarity * (i / a) * 1000
   }, [a])
-  const label = cur ? `${cur.name.replace(/\.[^.]+$/, '')}${allPixels && pairs.length > 1 ? ' · All pixels' : pair?.label ? ` · ${pair.label}` : ''}` : ''
+  const pixPart = allPixels && pairs.length > 1 ? ' · All pixels' : pair?.label ? ` · ${pair.label}` : ''
+  const label = cur ? (other ? `${stem(cur.name)} vs ${stem(other.name)}${pixPart}` : `${stem(cur.name)}${pixPart}`) : ''
+  const imgFile = other ? `${stem(cur?.name ?? '')}_vs_${other.name}` : cur?.name ?? ''
 
   const pill = (on: boolean) => `inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-medium cursor-pointer ${tr} ${on ? 'bg-accent border-accent text-on-accent' : 'border-line text-fg hover:border-accent'}`
 
