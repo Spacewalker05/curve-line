@@ -92,12 +92,13 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
       if (r) out.push({ name: `${prefix}Reverse`, s: r, color })
       if (s1) out.push({ name: `${prefix}Scan`, s: s1, color })
     }
-    if (other) {
+    if (other && cur) {
       // Compare mode: colour by sample so the two files read apart at a glance.
-      const sets: [InspectFile, string][] = [[cur, fileColors[0]], [other, fileColors[1]]]
+      const sets: [InspectFile, string][] = [[cur, fileColors[0] ?? ''], [other, fileColors[1] ?? '']]
       for (const [file, color] of sets) {
         const px = file.pixels ?? []
-        const chosen = allPixels ? px : [px.find((p) => p.label === pair.label) ?? px[Math.min(pi, px.length - 1)]].filter(Boolean)
+        const match = px.find((p) => p.label === pair.label) ?? px[Math.min(pi, px.length - 1)]
+        const chosen = allPixels ? px : match ? [match] : []
         for (const p of chosen) add(p, color, `${stem(file.name)} · `)
       }
       return out
@@ -134,6 +135,7 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
         <Toggle on={allPixels} onChange={setAllPixels} label="All pixels" />
         <Toggle on={invert} onChange={setInvert} label="Invert current sign" />
         <Toggle on={grid} onChange={setGrid} label="Grid lines" sub="Major lines solid, minor lines faint" />
+        <Toggle on={compare && canCompare} onChange={setCompare} label="Compare two files" sub={canCompare ? 'Overlay I–V and J–V of two samples' : 'Add a second file to compare'} />
       </div>
     </>
   )
@@ -153,8 +155,20 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
-              {loaded.map((l, i) => <Button variant="ghost" key={l.name} onClick={() => { setFi(i); setPi(0) }} className={pill(i === fi)}>{l.name}</Button>)}
+              {loaded.map((l, i) => <Button variant="ghost" key={l.name} onClick={() => { setFi(i); setPi(0) }} className={pill(i === fi)}>{other && i === fi && <span className="w-2 h-2 rounded-full" style={{ background: fileColors[0] }} />}{l.name}</Button>)}
             </div>
+            {other && (
+              <div className={`${card} p-4`}>
+                <div className={`${sectionLabel} mb-3`}>Compare with</div>
+                <div className="flex flex-wrap gap-2">
+                  {loaded.map((l, i) => i === fi ? null : (
+                    <Button variant="ghost" key={l.name} onClick={() => setCi(i)} className={pill(i === cmpIdx)}>
+                      {i === cmpIdx && <span className="w-2 h-2 rounded-full" style={{ background: fileColors[1] }} />}{l.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
             {pairs.length > 1 && (
               <div className={`${card} p-4`}>
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -176,9 +190,9 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
               <div className={`${card} p-5 text-sm text-bad`}>{err}</div>
             ) : (
               <>
-                <LineChart title={`Current vs Voltage — ${label}`} yLabel="Current (mA)" filename={plotImageName('current', cur?.name ?? '', allPixels ? undefined : pair?.label)} scans={scans} yOf={toMa} dark={dark} grid={grid} />
+                <LineChart title={`Current vs Voltage — ${label}`} yLabel="Current (mA)" filename={plotImageName('current', imgFile, allPixels ? undefined : pair?.label)} scans={scans} yOf={toMa} dark={dark} grid={grid} />
                 {a > 0 ? (
-                  <LineChart title={`Current density vs Voltage — ${label}`} yLabel="Current Density (mA/cm²)" filename={plotImageName('jsc', cur?.name ?? '', allPixels ? undefined : pair?.label)} scans={scans} yOf={toJ} dark={dark} grid={grid} positive />
+                  <LineChart title={`Current density vs Voltage — ${label}`} yLabel="Current Density (mA/cm²)" filename={plotImageName('jsc', imgFile, allPixels ? undefined : pair?.label)} scans={scans} yOf={toJ} dark={dark} grid={grid} positive />
                 ) : (
                   <div className={`${card} p-5 text-sm text-muted`}>Enter an active area to show the J–V plot.</div>
                 )}
