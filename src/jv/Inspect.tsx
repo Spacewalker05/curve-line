@@ -94,7 +94,7 @@ export default function Inspect({ onBack, dark, setDark }: { onBack: () => void;
     }
     if (other && cur) {
       // Compare mode: colour by sample so the two files read apart at a glance.
-      const sets: [InspectFile, string][] = [[cur, fileColors[0]], [other, fileColors[1]]]
+      const sets: [InspectFile, string][] = [[cur, fileColors[0] ?? ''], [other, fileColors[1] ?? '']]
       for (const [file, color] of sets) {
         const px = file.pixels ?? []
         const match = px.find((p) => p.label === pair.label) ?? px[Math.min(pi, px.length - 1)]
