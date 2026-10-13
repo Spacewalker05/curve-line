@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Open
+- [ ] Trial export watermark: implement and verify locally only; no GitHub sync
 - [ ] User to check Inspect with their own scan files (appearance and numbers)
 
 ## Done
