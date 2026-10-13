@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Plotly from 'plotly.js-cartesian-dist-min'
+import { watermarkDownloadButton } from './plot-watermark'
 import { tr } from './ui'
 
 export function ExpandButton({ getEl, title }: { getEl: () => HTMLElement | null; title: string }) {
@@ -32,7 +33,7 @@ function Modal({ getEl, title, onClose }: { getEl: () => HTMLElement | null; tit
     layout.autosize = true
     layout.margin = { ...layout.margin, t: Math.max(layout.margin?.t ?? 0, 56) }
     layout.dragmode = 'zoom'
-    Plotly.react(el, data, layout, { displaylogo: false, responsive: true, displayModeBar: true, scrollZoom: true, modeBarButtonsToRemove: ['lasso2d', 'select2d'], toImageButtonOptions: { ...src._context?.toImageButtonOptions, filename: src.dataset.imageName || src.dataset.plot || 'plot' } })
+    Plotly.react(el, data, layout, { displaylogo: false, responsive: true, displayModeBar: true, scrollZoom: true, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'toImage'], modeBarButtonsToAdd: [watermarkDownloadButton], toImageButtonOptions: { ...src._context?.toImageButtonOptions, filename: src.dataset.imageName || src.dataset.plot || 'plot' } })
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', key)
     document.body.style.overflow = 'hidden'
