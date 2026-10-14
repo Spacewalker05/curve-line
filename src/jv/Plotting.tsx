@@ -4,7 +4,6 @@ import Plotly from 'plotly.js-basic-dist-min'
 import readExcelFile from 'read-excel-file/browser'
 import { ExpandButton } from './Expand'
 import { plotImageName } from './plot-export'
-import { watermark } from './watermark'
 import { card, Check, cv, minorTicks, DropZone, FileChips, primaryBtn, Section, sectionLabel, Shell, Toggle, tr, Analysing, withMinDuration } from './ui'
 
 type Series = { sample: string; labels: string[]; fwd: (number | null)[]; rev: (number | null)[] | null }
@@ -163,7 +162,7 @@ function FigurePlot({ title, subtitle, sets, mode, opts, dark }: { title: string
       showlegend: mode === 'combined',
       legend: { orientation: 'h', x: 1, xanchor: 'right', y: 1.14, font: { size: 11, color: fg } },
       hoverlabel: { bgcolor: cv('--c-panel'), bordercolor: line, font: { family: 'JetBrains Mono', size: 12, color: fg } },
-      annotations: [watermark()],
+      annotations: [],
     }
     params.forEach((p, k) => {
       const sfx = k === 0 ? '' : String(k + 1)
@@ -309,7 +308,7 @@ function PairedFigure({ file, block, kind, opts, dark }: { file: string; block: 
         ref.current,
         traces,
         {
-          paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff', showlegend: false, annotations: [watermark()],
+          paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff', showlegend: false,
           margin: { l: 84, r: 28, t: 28, b: 64 }, font: { family: 'Arial, sans-serif', color: '#171717' },
           hoverlabel: { bgcolor: cv('--c-panel'), bordercolor: line, font: { family: 'JetBrains Mono', size: 12, color: fg } },
           xaxis: { ...originAxis(), showgrid: false, tickmode: 'array', tickvals: cats.map((_, i) => i), ticktext: cats.map((c) => c.label), range: [-0.6, cats.length - 0.4] },
@@ -376,7 +375,7 @@ function PairedFigure({ file, block, kind, opts, dark }: { file: string; block: 
         showlegend: !bySample && groups.size > 1,
         legend: { orientation: 'h', x: 1, xanchor: 'right', y: 1.14, font: { size: 11, color: fg } },
         hoverlabel: { bgcolor: cv('--c-panel'), bordercolor: line, font: { family: 'JetBrains Mono', size: 12, color: fg } },
-        annotations: [watermark(), { text: block.param, xref: 'paper', yref: 'paper', x: 0, y: 1.02, xanchor: 'left', yanchor: 'bottom', showarrow: false, font: { size: 12, color: muted } }],
+        annotations: [{ text: block.param, xref: 'paper', yref: 'paper', x: 0, y: 1.02, xanchor: 'left', yanchor: 'bottom', showarrow: false, font: { size: 12, color: muted } }],
         xaxis: { ...originAxis(), showgrid: false, tickmode: 'array', tickvals, ticktext, tickangle: 0, range },
         yaxis: { ...originAxis(block.param), showgrid: opts.grid, gridcolor: '#dddddd', minor: minorTicks('#171717') },
       },

@@ -5,7 +5,6 @@ import type { Scan } from './core'
 import { inspectFiles, type InspectFile } from './api'
 import { ExpandButton } from './Expand'
 import { plotImageName } from './plot-export'
-import { watermark } from './watermark'
 import { card, cv, DropZone, Field, FileChips, gridStyle, minorTicks, paperAxis, pixelColor, Section, sectionLabel, Shell, Toggle, tr } from './ui'
 
 const flip = (s: Scan | undefined, invert: boolean) => (s && invert ? { V: s.V, I: s.I.map((i) => -i) } : s)
@@ -33,7 +32,7 @@ function LineChart({ title, yLabel, filename, scans, yOf, dark, grid, positive =
         paper_bgcolor: paper, plot_bgcolor: paper, font, height: 420, margin: { l: 72, r: 24, t: 20, b: 60 },
         xaxis: { ...axis('Voltage (V)'), ...(positive ? { rangemode: 'nonnegative' } : {}) },
         yaxis: { ...axis(yLabel), ...(positive ? { range: [0, Math.max(1, ...scans.flatMap(({ s }) => s.I.map((i) => yOf(i, s)))) * 1.08] } : {}) },
-        hovermode: 'closest', dragmode: 'zoom', showlegend: false, annotations: [watermark()],
+        hovermode: 'closest', dragmode: 'zoom', showlegend: false,
       },
       { displaylogo: false, displayModeBar: false, responsive: true, scrollZoom: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'], toImageButtonOptions: { filename, scale: 3 } },
     )
