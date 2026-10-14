@@ -4,6 +4,7 @@ import Plotly from 'plotly.js-cartesian-dist-min'
 import type { MetricKey, Metrics } from './api'
 import { ExpandButton } from './Expand'
 import { plotImageName } from './plot-export'
+import { watermark } from './watermark'
 import { card, cv, minorTicks, paperAxis, sectionLabel } from './ui'
 
 type Dir = 'reverse' | 'forward'
@@ -67,7 +68,7 @@ export default function BoxChart({ metric, columns, dark, outputName }: { metric
     Plotly.react(ref.current, traces, {
       paper_bgcolor: cv('--c-plot-transparent'), plot_bgcolor: cv('--c-plot-transparent'),
       margin: { l: 80, r: 16, t: 12, b: 36 },
-      font: { family: 'Inter', color: muted }, showlegend: false,
+      font: { family: 'Inter', color: muted }, showlegend: false, annotations: [watermark()],
       xaxis: { ...paperAxis(ink, muted), showgrid: false, ticks: '', tickfont: { size: 12, color: ink } },
       yaxis: { ...paperAxis(ink, muted), title: { text: `${metric.label} (${metric.unit})`, standoff: 12 }, automargin: true, showgrid: false, minor: minorTicks(ink) },
       hoverlabel: { bgcolor: cv('--c-panel'), bordercolor: line, font: { family: 'JetBrains Mono', size: 12, color: ink } },
