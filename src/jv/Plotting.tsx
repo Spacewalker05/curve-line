@@ -4,7 +4,6 @@ import Plotly from 'plotly.js-basic-dist-min'
 import readExcelFile from 'read-excel-file/browser'
 import { ExpandButton } from './Expand'
 import { plotImageName } from './plot-export'
-import { downloadWatermarkedPlot } from './plot-watermark'
 import { card, Check, cv, minorTicks, DropZone, FileChips, primaryBtn, Section, sectionLabel, Shell, Toggle, tr, Analysing, withMinDuration } from './ui'
 
 type Series = { sample: string; labels: string[]; fwd: (number | null)[]; rev: (number | null)[] | null }
@@ -208,7 +207,7 @@ function FigurePlot({ title, subtitle, sets, mode, opts, dark }: { title: string
 
   const png = async () => {
     await Plotly.relayout(ref.current, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
-    await downloadWatermarkedPlot(ref.current, { width, height: 800, scale: 2, filename })
+    await Plotly.downloadImage(ref.current, { format: 'png', width, height: 800, scale: 2, filename })
     await Plotly.relayout(ref.current, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
   }
 
@@ -393,7 +392,7 @@ function PairedFigure({ file, block, kind, opts, dark }: { file: string; block: 
 
   const png = async () => {
     await Plotly.relayout(ref.current, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
-    await downloadWatermarkedPlot(ref.current, { width, height: 800, scale: 2, filename })
+    await Plotly.downloadImage(ref.current, { format: 'png', width, height: 800, scale: 2, filename })
     await Plotly.relayout(ref.current, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
   }
 
@@ -457,7 +456,7 @@ export default function Plotting({ onBack, dark, setDark }: { onBack: () => void
   const downloadAll = async () => {
     for (const el of Array.from(document.querySelectorAll<HTMLElement>('[data-plot]'))) {
       await Plotly.relayout(el, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
-      await downloadWatermarkedPlot(el, { width: +(el.dataset.w || 1400), height: 800, scale: 2, filename: el.dataset.plot || 'plot' })
+      await Plotly.downloadImage(el, { format: 'png', width: +(el.dataset.w || 1400), height: 800, scale: 2, filename: el.dataset.plot || 'plot' })
       await Plotly.relayout(el, { paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff' })
       await new Promise((r) => setTimeout(r, 250))
     }
