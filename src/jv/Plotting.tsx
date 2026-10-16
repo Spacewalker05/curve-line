@@ -9,7 +9,10 @@ import { card, Check, cv, minorTicks, DropZone, FileChips, primaryBtn, Section, 
 type Series = { sample: string; labels: string[]; fwd: (number | null)[]; rev: (number | null)[] | null }
 type Block = { param: string; series: Series[] }
 type Dataset = { file: string; labels: string[]; cols: Record<string, (number | null)[]>; blocks: Block[] }
-type Opts = { meanLine: boolean; errBars: boolean; grid: boolean; size: number }
+type Opts = { meanLine: boolean; errBars: boolean; grid: boolean; size: number; labelSize: number }
+// Category labels: break at spaces so long sample names stack instead of tilting.
+const wrapLabel = (t: string) => String(t ?? '').trim().split(/\s+/).join('<br>')
+const labelAxis = (o: Opts) => ({ tickangle: 0, automargin: true, tickfont: { family: 'Arial, sans-serif', size: o.labelSize, color: '#171717' } })
 
 const mean = (a: number[]) => a.reduce((s, x) => s + x, 0) / a.length
 const std = (a: number[]) => {
@@ -191,7 +194,7 @@ function FigurePlot({ title, subtitle, sets, mode, opts, dark }: { title: string
       })
       const count = mode === 'file' ? Math.max(...groups.map((d) => d.labels.length)) : groups.length
       const uniq = ticks.filter((t, i, arr) => arr.findIndex((u) => u.v === t.v) === i)
-      layout['xaxis' + sfx] = { ...originAxis(), domain: [d0, d1], anchor: 'y' + sfx, showgrid: false, tickmode: 'array', tickvals: uniq.map((t) => t.v), ticktext: uniq.map((t) => t.t), tickangle: 0, range: [-0.6, count - 0.4] }
+      layout['xaxis' + sfx] = { ...originAxis(), domain: [d0, d1], anchor: 'y' + sfx, showgrid: false, tickmode: 'array', tickvals: uniq.map((t) => t.v), ticktext: uniq.map((t) => wrapLabel(t.t)), ...labelAxis(opts), range: [-0.6, count - 0.4] }
       layout['yaxis' + sfx] = { ...originAxis(p), domain: [0, 1], anchor: 'x' + sfx, showgrid: opts.grid, gridcolor: '#dddddd', minor: minorTicks('#171717') }
       layout.annotations.push({ text: p, xref: 'paper', yref: 'paper', x: (d0 + d1) / 2, y: 1.02, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 12, color: muted } })
     })
@@ -311,7 +314,7 @@ function PairedFigure({ file, block, kind, opts, dark }: { file: string; block: 
           paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff', showlegend: false,
           margin: { l: 84, r: 28, t: 28, b: 64 }, font: { family: 'Arial, sans-serif', color: '#171717' },
           hoverlabel: { bgcolor: cv('--c-panel'), bordercolor: line, font: { family: 'JetBrains Mono', size: 12, color: fg } },
-          xaxis: { ...originAxis(), showgrid: false, tickmode: 'array', tickvals: cats.map((_, i) => i), ticktext: cats.map((c) => c.label), range: [-0.6, cats.length - 0.4] },
+          xaxis: { ...originAxis(), showgrid: false, tickmode: 'array', tickvals: cats.map((_, i) => i), ticktext: cats.map((c) => wrapLabel(c.label)), ...labelAxis(opts), range: [-0.6, cats.length - 0.4] },
           yaxis: { ...originAxis(block.param), showgrid: opts.grid, gridcolor: '#dddddd', minor: minorTicks('#171717') },
         },
         { displaylogo: false, responsive: true, displayModeBar: false, toImageButtonOptions: { filename, scale: 2 } },
@@ -376,7 +379,7 @@ function PairedFigure({ file, block, kind, opts, dark }: { file: string; block: 
         legend: { orientation: 'h', x: 1, xanchor: 'right', y: 1.14, font: { size: 11, color: fg } },
         hoverlabel: { bgcolor: cv('--c-panel'), bordercolor: line, font: { family: 'JetBrains Mono', size: 12, color: fg } },
         annotations: [{ text: block.param, xref: 'paper', yref: 'paper', x: 0, y: 1.02, xanchor: 'left', yanchor: 'bottom', showarrow: false, font: { size: 12, color: muted } }],
-        xaxis: { ...originAxis(), showgrid: false, tickmode: 'array', tickvals, ticktext, tickangle: 0, range },
+        xaxis: { ...originAxis(), showgrid: false, tickmode: 'array', tickvals, ticktext: ticktext.map(wrapLabel), ...labelAxis(opts), range },
         yaxis: { ...originAxis(block.param), showgrid: opts.grid, gridcolor: '#dddddd', minor: minorTicks('#171717') },
       },
       { displaylogo: false, responsive: true, displayModeBar: false, toImageButtonOptions: { filename, scale: 2 } },
@@ -416,7 +419,7 @@ export default function Plotting({ onBack, dark, setDark }: { onBack: () => void
   const [data, setData] = useState<Dataset[]>([])
   const [err, setErr] = useState('')
   const [chosen, setChosen] = useState<string[] | null>(null)
-  const [opts, setOpts] = useState<Opts>({ meanLine: true, errBars: true, grid: false, size: 10 })
+  const [opts, setOpts] = useState<Opts>({ meanLine: true, errBars: true, grid: false, size: 10, labelSize: 14 })
   const set = (p: Partial<Opts>) => setOpts((o) => ({ ...o, ...p }))
 
   const allParams = useMemo(() => Array.from(new Set(data.flatMap((d) => [...d.blocks.map((b) => b.param), ...Object.keys(d.cols)]))), [data])
@@ -498,6 +501,12 @@ export default function Plotting({ onBack, dark, setDark }: { onBack: () => void
           Marker size <span className="font-mono text-dim">{opts.size}</span>
         </span>
         <input type="range" min={5} max={18} value={opts.size} onChange={(e) => set({ size: +e.target.value })} className="w-full accent-[var(--c-accent)]" />
+      </label>
+      <label className="block mt-3">
+        <span className="flex justify-between text-xs font-medium text-muted mb-2">
+          Label font size <span className="font-mono text-dim">{opts.labelSize}</span>
+        </span>
+        <input type="range" min={8} max={20} value={opts.labelSize} onChange={(e) => set({ labelSize: +e.target.value })} className="w-full accent-[var(--c-accent)]" />
       </label>
     </>
   )
